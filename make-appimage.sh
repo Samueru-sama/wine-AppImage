@@ -42,7 +42,12 @@ rm -f ./AppDir/lib/wine/x86_64-unix/wine
 cp /usr/lib/wine/x86_64-unix/wine ./AppDir/wine.test
 cp /usr/lib/wine/x86_64-unix/wine ./AppDir/lib/wine/x86_64-unix/wine
 patchelf --set-interpreter /tmp/"$kek" ./AppDir/lib/wine/x86_64-unix/wine
-patchelf --add-needed anylinux.so ./AppDir/shared/lib/wine/x86_64-unix/wine
+
+# we used to run patchelf --add-needed anylinux.so on the wine binary
+# but after 11.8 this causes the binary to break horribly:
+# AppDir/lib/wine/x86_64-unix/wine: oops... not enough space for load commands
+# so we will ahve to make sure anylinux.so loads by adding it as a dependency to the libc
+patchelf --add-needed anylinux.so ./AppDir/shared/lib/libc.so.6
 
 cat <<EOF > ./AppDir/bin/random-linker.src.hook
 #!/bin/sh
