@@ -34,7 +34,7 @@ WINEPREFIX=/tmp/wine quick-sharun \
 	/usr/bin/cabextract        \
 	/usr/lib/libfreetype.so*   \
 	/usr/lib/libharfbuzz*      \
-    /usr/lib/libgraphite*      \
+	/usr/lib/libgraphite*      \
 	/usr/lib/libavcodec.so*	   \
 	/usr/lib/libavdevice.so*   \
 	/usr/lib/libavfilter.so*   \
@@ -43,7 +43,10 @@ WINEPREFIX=/tmp/wine quick-sharun \
 	/usr/lib/libswresample.so* \
 	/usr/lib/libswscale.so*    \
 	/usr/bin/wget              \
-	/usr/bin/zenity
+	/usr/bin/zenity            \
+	/usr/bin/unzip             \
+	/usr/lib/7zip/7z           \
+	/usr/lib/7zip/7z.so
 
 # Install latest winetricks
 wget --retry-connrefused --tries=30 https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks -O ./AppDir/bin/winetricks
