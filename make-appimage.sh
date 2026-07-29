@@ -75,10 +75,6 @@ chmod +x ./AppDir/bin/*.hook
 # Set the lib path to also use wine libs
 echo 'LD_LIBRARY_PATH=${APPDIR}/lib:${APPDIR}/lib/pulseaudio:${APPDIR}/lib/alsa-lib:${APPDIR}/lib/wine/x86_64-unix' >> ./AppDir/.env
 
-# remove wine static libs
-find ./AppDir/lib/ -type f -name '*.a'
-find ./AppDir/lib/ -type f -name '*.a' -delete
-
 # strip windows libs, inspired by alpine linux: 
 # https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/wine/APKBUILD
 if [ "$ARCH" = 'x86_64' ]; then
