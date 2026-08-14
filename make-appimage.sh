@@ -35,7 +35,7 @@ WINEPREFIX=/tmp/wine quick-sharun \
 	/usr/lib/libfreetype.so*   \
 	/usr/lib/libharfbuzz*      \
 	/usr/lib/libgraphite*      \
-	/usr/lib/libavcodec.so*	   \
+	/usr/lib/libavcodec.so*    \
 	/usr/lib/libavdevice.so*   \
 	/usr/lib/libavfilter.so*   \
 	/usr/lib/libavformat.so*   \
@@ -48,34 +48,33 @@ WINEPREFIX=/tmp/wine quick-sharun \
 	/usr/lib/7zip/7z           \
 	/usr/lib/7zip/7z.so
 
-# Install latest winetricks
-wget --retry-connrefused --tries=30 https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks -O ./AppDir/bin/winetricks
-chmod +x ./AppDir/bin/winetricks
-
-# alright here the pain starts
-ln -sr ./AppDir/lib/wine/x86_64-unix/*.so* ./AppDir/bin
-
-# this gets broken by sharun somehow
-kek=.$(tr -dc 'A-Za-z0-9_=-' < /dev/urandom | head -c 10)
+# quick-sharun replaces lib/wine/x86_64-unix/wine with a
+# sharun hardlink so have to restore the real binay (keep reading to see why)
 rm -f ./AppDir/lib/wine/x86_64-unix/wine
 cp /usr/lib/wine/x86_64-unix/wine ./AppDir/lib/wine/x86_64-unix/wine
-patchelf --set-interpreter /tmp/"$kek" ./AppDir/lib/wine/x86_64-unix/wine
-# we used to run patchelf --add-needed anylinux.so on the wine binary
-# but after 11.8 this causes the binary to break horribly:
-# AppDir/lib/wine/x86_64-unix/wine: oops... not enough space for load commands
-# so we will ahve to make sure anylinux.so loads by adding it as a dependency to the libc
-patchelf --add-needed anylinux.so ./AppDir/shared/lib/libc.so.6
 
-cat <<EOF > ./AppDir/bin/random-linker.src.hook
-#!/bin/sh
-cp -f "\$APPDIR"/shared/lib/ld-linux*.so* /tmp/"$kek"
-EOF
-chmod +x ./AppDir/bin/*.hook
+# make sure to have the wine from /usr/bin and NOT from /usr/lib here
+cp /usr/bin/wine ./AppDir/shared/bin/wine
 
-# Set the lib path to also use wine libs
-echo 'LD_LIBRARY_PATH=${APPDIR}/lib:${APPDIR}/lib/pulseaudio:${APPDIR}/lib/alsa-lib:${APPDIR}/lib/wine/x86_64-unix' >> ./AppDir/.env
+# it turns out that wine itself performs userland-execve on the wine binary
+# in lib, and it checks its PT_INTERP before doing so, so we have to set it manually
+# to our bundled dynamic linker, which sharun will automatically copy to /tmp
+patchelf --set-interpreter /tmp/.ld-sharun.so.67 ./AppDir/lib/wine/x86_64-unix/wine
 
-# strip windows libs, inspired by alpine linux: 
+# mark the launcher and wineserver as pyinstaller-like so anylinux-sharun uses
+# real execve for them (userland-execve breaks /proc/self/exe, which the launcher
+# relies on to locate ntdll.so). objcopy MUST run after patchelf: patchelf moves
+# the section table and sharun's ELF parser then fails to read the binary, so the
+# section has to be added last to keep the section table at the end of the file.
+:> /tmp/.wine-pydata
+for winebin in ./AppDir/shared/bin/wine ./AppDir/shared/bin/wineserver; do
+	[ -f "$winebin" ] || continue
+	patchelf --set-interpreter /tmp/.ld-sharun.so.67 "$winebin"
+	objcopy --add-section pydata=/tmp/.wine-pydata \
+		--set-section-flags pydata=noload,readonly "$winebin"
+done
+
+# strip windows libs, inspired by alpine linux:
 # https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/community/wine/APKBUILD
 if [ "$ARCH" = 'x86_64' ]; then
 	x86_64-w64-mingw32-strip -R .comment --strip-unneeded ./AppDir/lib/wine/x86_64-windows/*.dll
@@ -84,3 +83,7 @@ fi
 
 # Turn AppDir into AppImage
 quick-sharun --make-appimage
+
+# Test the app for 12 seconds, if the test fails due to the app
+# having issues running in the CI use --simple-test instead
+quick-sharun --test ./dist/*.AppImage explorer.exe

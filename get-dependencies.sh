@@ -19,4 +19,8 @@ fi
 # Comment this out if you need an AUR package
 make-aur-package zenity-rs-bin
 
+# Install latest winetricks
+wget --retry-connrefused --tries=30 https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks -O ./AppDir/bin/winetricks
+chmod +x ./AppDir/bin/winetricks
+
 # If the application needs to be manually built that has to be done down here
