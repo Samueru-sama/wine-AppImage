@@ -16,10 +16,12 @@ export DEPLOY_PIPEWIRE=1
 export DEPLOY_GSTREAMER=1
 export DEPLOY_VULKAN=1
 export DEPLOY_OPENGL=1
+export WINEPREFIX=/tmp/wine
+
+mkdir -p "$WINEPREFIX"
 
 # Deploy dependencies
-mkdir -p /tmp/wine
-WINEPREFIX=/tmp/wine quick-sharun \
+quick-sharun \
 	/usr/bin/wine*             \
 	/usr/lib/wine              \
 	/usr/bin/msidb             \
